@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # submit_benchmarks.sh - submit a negative-steering job per benchmark target.
 #
-# A wrapper around scripts/negative_steering.slurm.sh. It submits one SLURM job
+# A wrapper around the engine's scripts/negative_steering.slurm.sh. It submits one SLURM job
 # for every experiments/benchmarking/<variant>/<target>/config.yml, directing
 # every output INSIDE that target's own folder so nothing floats in the repo
 # root or in scripts/:
@@ -37,7 +37,12 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BENCH_DIR="${REPO_ROOT}/experiments/benchmarking"
-SLURM_SCRIPT="${REPO_ROOT}/scripts/negative_steering.slurm.sh"
+# The runner lives in the engine, which is the `engine` submodule unless
+# NEGSTEER_REPO_DIR points elsewhere. It is told where the engine is, so it
+# does not have to infer it from the config's path.
+ENGINE_DIR="${NEGSTEER_REPO_DIR:-${REPO_ROOT}/engine}"
+SLURM_SCRIPT="${ENGINE_DIR}/scripts/negative_steering.slurm.sh"
+export NEGSTEER_REPO_DIR="${ENGINE_DIR}"
 
 DRY=""
 FORCE=""
@@ -59,7 +64,11 @@ if [[ -n "$VARIANT" && "$VARIANT" != "unconstrained" && "$VARIANT" != "constrain
     exit 2
 fi
 
-[[ -f "$SLURM_SCRIPT" ]] || { echo "ERROR: missing $SLURM_SCRIPT" >&2; exit 2; }
+[[ -f "$SLURM_SCRIPT" ]] || {
+    echo "ERROR: missing $SLURM_SCRIPT" >&2
+    echo "Run: git submodule update --init, or set NEGSTEER_REPO_DIR." >&2
+    exit 2
+}
 if [[ -z "$DRY" ]] && ! command -v sbatch >/dev/null 2>&1; then
     echo "ERROR: sbatch not found. Run this on the HPC, or use --dry-run." >&2
     exit 2

@@ -84,14 +84,28 @@ if [ -z "${SELECTOR}" ]; then
     exit 1
 fi
 
-REPO_DIR="${NEGSTEER_REPO_DIR:-${SLURM_SUBMIT_DIR:-}}"
-if [ ! -f "${REPO_DIR:-}/main.nf" ]; then
-    echo "ERROR: no main.nf under '${REPO_DIR:-}'. Submit from the repo root," >&2
-    echo "or set NEGSTEER_REPO_DIR in site.conf." >&2
+# ── This repository and the engine ───────────────────────────────────────────
+# Two directories. This one holds the configs and receives the run outputs.
+# The engine holds main.nf and bin/, and is the `engine` submodule unless
+# NEGSTEER_REPO_DIR points elsewhere.
+PROJECT_DIR="${NEGSTEER_LAUNCH_DIR:-${SLURM_SUBMIT_DIR:-}}"
+if [ ! -d "${PROJECT_DIR:-}/experiments" ]; then
+    echo "ERROR: no experiments/ under '${PROJECT_DIR:-}'. Submit from this" >&2
+    echo "repository's root, or set NEGSTEER_LAUNCH_DIR in site.conf." >&2
     exit 1
 fi
+ENGINE_DIR="${NEGSTEER_REPO_DIR:-${PROJECT_DIR}/engine}"
+if [ ! -f "${ENGINE_DIR}/main.nf" ]; then
+    echo "ERROR: no main.nf under '${ENGINE_DIR}'." >&2
+    echo "Run: git submodule update --init, or set NEGSTEER_REPO_DIR." >&2
+    exit 1
+fi
+# The engine binds this directory into every container, so the configs and
+# their reference structures are visible inside the Boltz image.
+export NEGSTEER_REPO_DIR="${ENGINE_DIR}"
+export NEGSTEER_LAUNCH_DIR="${PROJECT_DIR}"
 
-ABL_DIR="${REPO_DIR}/experiments/interface-ablation"
+ABL_DIR="${PROJECT_DIR}/experiments/interface-ablation"
 if [ ! -d "${ABL_DIR}" ]; then
     echo "ERROR: no ${ABL_DIR}. Generate it with scripts/make_ablation_controls.py." >&2
     exit 1
@@ -121,9 +135,9 @@ case "${SELECTOR}" in
 esac
 
 # shellcheck disable=SC2086
-N_CONFIGS=$(ls -1 ${REPO_DIR}/${GLOB} 2>/dev/null | wc -l | tr -d ' ')
+N_CONFIGS=$(ls -1 ${PROJECT_DIR}/${GLOB} 2>/dev/null | wc -l | tr -d ' ')
 if [ "${N_CONFIGS}" -eq 0 ]; then
-    echo "ERROR: ${GLOB} matched no configs under ${REPO_DIR}." >&2
+    echo "ERROR: ${GLOB} matched no configs under ${PROJECT_DIR}." >&2
     exit 1
 fi
 
@@ -131,7 +145,7 @@ fi
 # silently ran with the native sequence would look like a benchmark result.
 # shellcheck disable=SC2086
 MISSING=$(grep -LE '^interface_ablation:[[:space:]]*"(alanine|scrambled)"' \
-    ${REPO_DIR}/${GLOB} 2>/dev/null || true)
+    ${PROJECT_DIR}/${GLOB} 2>/dev/null || true)
 if [ -n "${MISSING}" ]; then
     echo "ERROR: these configs carry no interface_ablation, so they are not controls:" >&2
     echo "${MISSING}" | sed 's/^/  /' >&2
@@ -140,7 +154,7 @@ fi
 
 # The arm in the directory name must match the constraints toggle, or the control
 # is the control for the other arm. Checked per config, since `all` spans both.
-for cfg in ${REPO_DIR}/${GLOB}; do
+for cfg in ${PROJECT_DIR}/${GLOB}; do
     case "${cfg}" in
         */interface-ablation/*_unrestrained/*) WANT="false" ;;
         */interface-ablation/*_restrained/*)   WANT="true"  ;;
@@ -163,4 +177,4 @@ echo "Date:      $(date)"
 echo "============================================================"
 echo
 
-exec bash "${REPO_DIR}/scripts/run_workflow.slurm.sh" "${GLOB}" "$@"
+exec bash "${ENGINE_DIR}/scripts/run_workflow.slurm.sh" "${GLOB}" "$@"

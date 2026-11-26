@@ -14,7 +14,7 @@ sequence, 3 seeds each) is classified into one of five outcomes:
 * Failed (wrong pose)  -- n_pass == 0, every seed folded correctly but the
   effector was never placed within 5 A of the true interface
 
-Tier definitions match bin/cross_summary.py's n_pass/n_seeds convention
+Tier definitions match the engine's bin/cross_summary.py n_pass/n_seeds convention
 (see that file's docstring) and make_plots.py's per-seed pass logic
 (reversion-corrected final ra_eff), reimplemented here with per-seed
 fold-intactness also tracked, which those two scripts do not need.

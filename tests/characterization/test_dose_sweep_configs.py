@@ -12,6 +12,7 @@ which is what will actually run.
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SWEEP = REPO_ROOT / "experiments" / "dose-sweep"
 BENCH = REPO_ROOT / "experiments" / "benchmarking" / "unconstrained"
 LAUNCHER = REPO_ROOT / "scripts" / "run_dose_sweep.slurm.sh"
+# The engine is a submodule, pinned to the commit these configs were run
+# against. A clone without `--recurse-submodules` has an empty engine/, so the
+# tests that need the driver skip rather than fail on a missing file.
+ENGINE = Path(os.environ.get("NEGSTEER_ENGINE", REPO_ROOT / "engine"))
+DRIVER = ENGINE / "bin" / "negative_steering.py"
 
 CONFIGS = sorted(SWEEP.glob("*/*/config.yml"))
 needs_sweep = pytest.mark.skipif(not CONFIGS, reason="dose sweep not generated")
@@ -30,8 +36,9 @@ MUTABLE = ("name:", "reference_pdb:", "negsteer_n_designs:")
 
 @pytest.fixture(scope="module")
 def drv():
-    spec = importlib.util.spec_from_file_location(
-        "drv", REPO_ROOT / "bin" / "negative_steering.py")
+    if not DRIVER.is_file():
+        pytest.skip(f"no engine at {ENGINE}. git submodule update --init")
+    spec = importlib.util.spec_from_file_location("drv", DRIVER)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

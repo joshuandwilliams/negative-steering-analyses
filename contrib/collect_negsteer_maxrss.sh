@@ -10,7 +10,7 @@
 #   bash collect_negsteer_maxrss.sh > negsteer_maxrss.csv
 #
 # Then copy negsteer_maxrss.csv back to
-#   <repo>/analyses/03-compute-cost/
+#   analyses/03-compute-cost/
 #
 # Several targets were retried, so more than one job id can exist per target.
 # Every id is emitted with its Slurm Elapsed; the staging script picks the one
@@ -18,10 +18,10 @@
 # actually used.
 set -uo pipefail
 
-REPO="${1:-${NEGSTEER_REPO_DIR:-}}"
+REPO="${1:-${NEGSTEER_LAUNCH_DIR:-}}"
 if [ -z "${REPO}" ] || [ ! -d "${REPO}/experiments" ]; then
-    echo "Usage: bash collect_negsteer_maxrss.sh <repo-on-the-cluster>" >&2
-    echo "or set NEGSTEER_REPO_DIR in site.conf." >&2
+    echo "Usage: bash collect_negsteer_maxrss.sh <this-repo-on-the-cluster>" >&2
+    echo "or set NEGSTEER_LAUNCH_DIR in site.conf." >&2
     exit 1
 fi
 

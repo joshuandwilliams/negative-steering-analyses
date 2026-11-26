@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Sync the local repo to the HPC via SSH (uses the ~/.ssh/config alias 'slurm').
+# Sync this repository to the HPC via SSH.
 #
 # Usage:
 #   ./contrib/sync_to_hpc.sh              # real sync
@@ -9,7 +9,7 @@
 #
 # Why --list-stale exists:
 #   rsync --delete does NOT delete excluded paths. It protects them, which is
-#   the behaviour that stops a code sync destroying results. The cost is that
+#   the behaviour that stops this push destroying results. The cost is that
 #   anything matching an exclude survives on the cluster forever, so a renamed
 #   or dropped directory is never cleaned up and the cluster silently
 #   accumulates two of everything. --list-stale reports what is up there and
@@ -19,31 +19,30 @@
 #   script never deletes anything on the cluster. --delete-excluded would
 #   "fix" the accumulation by wiping every result. Never use it.
 #
-# Direction & authority:
-#   The Mac repo is authoritative for CODE.  Develop here, sync up, run the
-#   engine on the HPC.  The HPC has no git.
+# Direction and authority:
+#   The Mac is authoritative for the configs, the scripts and the analysis
+#   documents. The cluster is authoritative for every run output. The HPC has
+#   no git.
 #
-# CRITICAL — experiments/ is protected:
-#   The HPC holds the real experiments/ tree (prior runs migrated from the old
-#   receptor_design/negative_steering scratch folder, plus new runs).  Those
-#   are HPC-only and gitignored.  This push EXCLUDES experiments/ entirely, so
-#   --delete can never wipe your results on the cluster.
+# CRITICAL — the run outputs are protected:
+#   Every config in experiments/ sits beside the inputs/ and run/ trees its
+#   run produced, which are gitignored and HPC-only. The first pass below
+#   therefore excludes experiments/ entirely, so --delete can never wipe a
+#   result. A second pass pushes the config.yml files additively, with no
+#   --delete at all.
+#
+#   No *.pdb is pushed from experiments/. The eighteen reference complexes go
+#   up once from data/, which is the copy every config resolves to.
 #
 # Also excluded:
-#   - tests/test_run/inputs/ and tests/test_run/run/  The single-run test is a real engine
-#     output produced on a GPU node, and the only thing that reaches the plan,
-#     collect, cycle and reversion-harvest code. Only tests/test_run/config.yml is
-#     tracked; the derived inputs and the run tree are HPC-authoritative for
-#     exactly the same reason experiments/ is, and a code sync must not wipe
-#     them. This was found by reading a --dry run rather than by thinking about
-#     it, which is the argument for always reading one.
-#   - tests/test_run/inputs/ and tests/test_run/run/  Same rule, same
-#     reason. The 6G10 workflow check is a real engine output produced on the
-#     cluster and only tests/test_run/config.yml is tracked.
-#   - analyses/  The Quarto report is authored and rendered on the Mac from
-#     results pulled down by sync_from_hpc.sh.  Nothing on the HPC reads it, and
-#     its rendered .html plus the *_files/ JS/CSS bundle are gitignored build
+#   - analyses/  The Quarto documents are authored and rendered on the Mac from
+#     results pulled down by sync_from_hpc.sh. Nothing on the HPC reads them,
+#     and the rendered .html plus the *_files/ bundle are gitignored build
 #     artefacts that do not belong on the cluster.
+#   - engine/  The engine is its own repository. Push it from its own checkout,
+#     or clone it on the cluster, and point NEGSTEER_REPO_DIR at it. Syncing a
+#     submodule's working tree from here would make the cluster's engine a
+#     copy with no commit of its own, which is the opposite of pinning it.
 #   - .claude/  Local editor/agent config, Mac-side only.
 
 set -euo pipefail
@@ -51,9 +50,19 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Host and remote path come from site.conf, which is gitignored. HOST is
 # anything ssh accepts, including an alias from ~/.ssh/config.
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/site_conf.sh
-. "${HERE}/../scripts/site_conf.sh"
+# The site.conf loader lives in the engine, so there is one copy of the
+# precedence rule rather than two. NEGSTEER_SITE_CONF, which it honours, is
+# set to this repository's own file.
+ENGINE_DIR="${NEGSTEER_REPO_DIR:-${REPO_ROOT}/engine}"
+LOADER="${ENGINE_DIR}/scripts/site_conf.sh"
+if [ ! -f "${LOADER}" ]; then
+    echo "ERROR: no site.conf loader at ${LOADER}." >&2
+    echo "Run: git submodule update --init, or set NEGSTEER_REPO_DIR." >&2
+    exit 1
+fi
+export NEGSTEER_SITE_CONF="${NEGSTEER_SITE_CONF:-${REPO_ROOT}/site.conf}"
+# shellcheck source=/dev/null
+. "${LOADER}"
 
 if [ -z "${NEGSTEER_HPC_HOST:-}" ] || [ -z "${NEGSTEER_HPC_DEST:-}" ]; then
     echo "ERROR: set NEGSTEER_HPC_HOST and NEGSTEER_HPC_DEST in site.conf." >&2
@@ -111,12 +120,7 @@ rsync -av --delete $DRY_RUN -e ssh \
     --exclude='.git/' \
     --exclude='experiments/' \
     --exclude='analyses/' \
-    --exclude='tests/test_run/inputs/' \
-    --exclude='tests/test_run/run/' \
-    --exclude='tests/test_run/run_cli/' \
-    --exclude='tests/test_run/.cli_view*' \
-    --exclude='tests/test_run/inputs/' \
-    --exclude='tests/test_run/run/' \
+    --exclude='engine/' \
     --exclude='.claude/' \
     --exclude='.vscode/' \
     --exclude='.idea/' \
@@ -146,7 +150,7 @@ rsync -av --delete $DRY_RUN -e ssh \
 # inputs/ and run/ outputs are excluded.
 #
 # No PDB is pushed from here. The eighteen reference complexes live in data/
-# and ride along with the code sync above, which is the only copy every config
+# and ride along with the first pass above, which is the only copy every config
 # in every tree resolves to.
 if [ -d "$REPO_ROOT/experiments/benchmarking" ]; then
     rsync -av --no-perms --no-owner --no-group $DRY_RUN -e ssh \
@@ -166,5 +170,5 @@ fi
 
 echo
 echo "Sync complete -> ${HPC_USER_HOST}:${HPC_DEST}"
-echo "(code pushed with --delete; experiments/ results untouched —"
+echo "(repo pushed with --delete; experiments/ results untouched —"
 echo " only benchmarking/ test definitions are pushed, additively.)"

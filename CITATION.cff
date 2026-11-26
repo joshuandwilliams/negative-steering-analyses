@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this benchmark or these analyses, please cite them as below."
+title: "negative-steering-analyses: benchmarking negative steering of Boltz-2 on NLR integrated-HMA-domain complexes"
+abstract: >-
+  The benchmark behind structure-negative-steering, and the analyses that read
+  it. Negative steering mutates the receptor surface residues a structure
+  prediction wrongly places in contact with its binding partner, so the model
+  can no longer settle on that interface. This repository holds the run
+  definitions for 18 solved NLR integrated-HMA-domain and MAX-effector
+  complexes, a mutation-set dose sweep over the same targets, the
+  interface-ablation controls, and nine analysis documents. The engine that
+  produced the runs is a submodule, pinned to the commit they were made with.
+authors:
+  - family-names: Williams
+    given-names: Joshua
+    email: joshuandwilliams@outlook.com
+license: MIT
+repository-code: "https://github.com/joshuandwilliams/negative-steering-analyses"
+keywords:
+  - protein structure prediction
+  - Boltz-2
+  - protein-protein interaction
+  - NLR
+  - negative design
+  - benchmark

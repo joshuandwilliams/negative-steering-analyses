@@ -1,0 +1,22 @@
+# No package is built here. This file exists for the tool configuration below,
+# which pytest and ruff both read from the repository root.
+#
+# The engine is a submodule with its own pyproject. Running pytest from this
+# root picks up these settings, not that one's, so the coverage ratchet over
+# the engine's bin/ does not apply to this tree.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -ra"
+markers = [
+    "logic: runs anywhere with Python. The committed configs, the generators that wrote them, and the statistics behind the documents. No cluster, no container.",
+    "check_test_run: asserts on the output of a real run. Needs a finished run tree on disk, which lives on the cluster.",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

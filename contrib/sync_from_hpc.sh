@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # Pull a negative-steering experiment back from the HPC to the Mac for local
-# analysis.  Experiments live under experiments/<name>/ on the cluster, are
-# gitignored, and are never pushed up by sync_to_hpc.sh.  This script pulls a
+# analysis.  Run outputs live under experiments/<name>/ on the cluster, are
+# gitignored, and are never overwritten by sync_to_hpc.sh.  This script pulls a
 # chosen one down (plots, CSVs) without committing the large artefacts.
 #
 # Usage:
@@ -26,9 +26,19 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Host and remote path come from site.conf, which is gitignored. HOST is
 # anything ssh accepts, including an alias from ~/.ssh/config.
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/site_conf.sh
-. "${HERE}/../scripts/site_conf.sh"
+# The site.conf loader lives in the engine, so there is one copy of the
+# precedence rule rather than two. NEGSTEER_SITE_CONF, which it honours, is
+# set to this repository's own file.
+ENGINE_DIR="${NEGSTEER_REPO_DIR:-${REPO_ROOT}/engine}"
+LOADER="${ENGINE_DIR}/scripts/site_conf.sh"
+if [ ! -f "${LOADER}" ]; then
+    echo "ERROR: no site.conf loader at ${LOADER}." >&2
+    echo "Run: git submodule update --init, or set NEGSTEER_REPO_DIR." >&2
+    exit 1
+fi
+export NEGSTEER_SITE_CONF="${NEGSTEER_SITE_CONF:-${REPO_ROOT}/site.conf}"
+# shellcheck source=/dev/null
+. "${LOADER}"
 
 if [ -z "${NEGSTEER_HPC_HOST:-}" ] || [ -z "${NEGSTEER_HPC_DEST:-}" ]; then
     echo "ERROR: set NEGSTEER_HPC_HOST and NEGSTEER_HPC_DEST in site.conf." >&2

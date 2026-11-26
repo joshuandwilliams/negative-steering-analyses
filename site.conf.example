@@ -1,0 +1,106 @@
+# Site settings. Copy to site.conf and edit. site.conf is gitignored.
+#
+#   cp site.conf.example site.conf
+#
+# Nothing in this repository is specific to one cluster or one person.
+# Everything that would be lives here, so a clone runs on any SLURM site once
+# this file is filled in.
+#
+# Read by scripts/submit.sh and the two contrib/ sync scripts, all of which
+# source the engine's scripts/site_conf.sh and point it at this file. Plain
+# shell, so a value may reference another. Every setting is optional. An unset
+# one falls back to the neutral default noted beside it, and the script that
+# needs it says so if it cannot continue.
+#
+# A variable already set in the environment wins over this file, which is what
+# lets one run override a setting without editing it.
+#
+# The engine has its own site.conf.example documenting the same settings for a
+# single target. Filling in both is fine. They are separate files, and each
+# repository's scripts read their own.
+
+
+# ── The engine ───────────────────────────────────────────────────────────────
+# Where structure-negative-steering is checked out. Default: the `engine`
+# submodule, so `git submodule update --init` is normally enough. Set this to
+# use a checkout of your own instead.
+#NEGSTEER_REPO_DIR="/home/you/structure-negative-steering"
+
+# Where this repository is checked out on the cluster. The launchers take it
+# from SLURM_SUBMIT_DIR, which is the directory sbatch was called from. Set it
+# only if you submit from elsewhere.
+#NEGSTEER_LAUNCH_DIR="/home/you/negative-steering-analyses"
+
+# Host directories the containers must see besides the engine, comma-separated.
+# The launchers already export this repository's root, which covers
+# experiments/ and data/. Add anything outside it.
+#NEGSTEER_BIND_PATHS="/data/structures"
+
+
+# ── Partitions ───────────────────────────────────────────────────────────────
+# scripts/submit.sh passes these as `sbatch -p`. A command-line option beats
+# an environment variable, which beats a #SBATCH line in the script, so this
+# wins whatever the launcher's header says (sbatch(1), INPUT ENVIRONMENT
+# VARIABLES).
+#
+# Leave a value empty and the job goes to your cluster's default partition.
+# That is fine for the head jobs and wrong for the GPU ones on most sites.
+#
+# GPU: one A100-class card per task, for the Boltz calls. Read by the engine's
+# nextflow.config, and passed by its submit.sh for a single target.
+#NEGSTEER_PARTITION_GPU="gpu"
+# Head: a campaign's Nextflow head process. CPU-only, 2 cores, 24 h.
+#NEGSTEER_PARTITION_HEAD="short"
+# Head, long: the dose sweep's head job, which needs 36 h.
+#NEGSTEER_PARTITION_HEAD_LONG="long"
+# CPU: the short CPU stages Nextflow submits. Read by nextflow.config.
+#NEGSTEER_PARTITION_CPU="short"
+
+# What to ask for to get one GPU. Default: --gres=gpu:1
+#NEGSTEER_GPU_CLUSTER_OPTIONS="--gres=gpu:1"
+
+# Accounting, if your site requires it. Default: unset, so neither is passed.
+#NEGSTEER_SLURM_ACCOUNT=""
+#NEGSTEER_SLURM_QOS=""
+
+# The most GPU tasks one campaign may have in flight. Applied as maxForks on
+# the gpu label, so it is this run's share of the partition rather than a limit
+# the scheduler enforces. Count the CARDS on the partition, not the nodes.
+# Default: 8, which is deliberately modest.
+#NEGSTEER_MAX_GPU_JOBS=8
+
+
+# ── Containers ───────────────────────────────────────────────────────────────
+# The Boltz image, built from the engine's containers/boltz2_negsteer.def.
+# Every config in experiments/ leaves boltz_container null and falls back to
+# this, so one value covers all of them. No default: a run without it stops
+# and says so.
+#NEGSTEER_BOLTZ_IMG="/path/to/boltz2_negsteer.img"
+
+# The Nextflow head process is the one thing that does not run in a container,
+# because its whole job is to submit and poll SLURM jobs and sbatch and squeue
+# are host binaries. So it needs a host JVM and a Nextflow launcher.
+#
+# NEGSTEER_NEXTFLOW_IMG is an image carrying /usr/local/bin/nextflow, which the
+# engine's run_workflow.slurm.sh extracts once into nxf_home/. Pin 25.10.4:
+# the engine's profiles are shaped around a selector-merge difference between
+# 25.10 and 26.04 that its docs/implementation-notes.md records.
+#
+# Leave both unset if `java` and `nextflow` are already on PATH.
+#NEGSTEER_JAVA_HOME="/path/to/jdk-17"
+#NEGSTEER_NEXTFLOW_IMG="/path/to/NextFlow.img"
+
+
+# ── Syncing a laptop checkout to the cluster ─────────────────────────────────
+# Only contrib/sync_to_hpc.sh and contrib/sync_from_hpc.sh read these, and
+# neither is part of any campaign. HOST is anything ssh accepts, including an
+# alias from ~/.ssh/config. DEST is relative to your remote home.
+#NEGSTEER_HPC_HOST="cluster"
+#NEGSTEER_HPC_DEST="negative-steering-analyses/"
+
+
+# ── The design campaign's run tree ───────────────────────────────────────────
+# Four analysis scripts recompute confidence metrics from the pikp1_avrpikf
+# campaign, which lives in receptor-resurfacing-pipeline rather than here.
+# They take --run-root, and fall back to this. 05, 06, 07 and 09 all read it.
+#NEGSTEER_CAMPAIGN_RUN_ROOT="/path/to/receptor-resurfacing-pipeline/experiments/campaigns/pikp1_avrpikf/runs/crystal_full_test_contig"
