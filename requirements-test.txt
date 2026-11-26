@@ -1,0 +1,36 @@
+# What the test suite needs, and nothing more.
+#
+#   pip install -r requirements-test.txt
+#   pytest -m logic
+#
+# This is what CI installs, so a package missing from here fails on a clean
+# runner instead of passing on a laptop whose conda environment supplies it.
+#
+# Lower bounds rather than exact pins, deliberately. The exact versions are in
+# environment.yml, which is what reproduces a committed figure byte for byte.
+# This file only has to be enough to run the tests, and a floor catches a
+# genuinely absent package where a pin would also fail on an unrelated bump.
+#
+# Why each one:
+#   numpy, pandas, matplotlib, scipy
+#       analyses/04-confidence-cost/confidence_common.py imports all four at
+#       module scope, and test_thesis_statistics.py loads that module. Its own
+#       skip guard only checks the first three, so scipy absent would fail at
+#       `from scipy.stats import spearmanr` rather than skip.
+#   PyYAML
+#       test_committed_configs.py and test_dose_sweep_configs.py load the
+#       engine's bin/negative_steering.py, whose _load_yaml imports yaml.
+#   pytest, pytest-cov
+#       the runner and the coverage report pyproject.toml configures.
+#
+# gemmi and biopython are NOT here. Nothing the tests import reads a structure:
+# the generators copy reference PDBs as bytes, and the engine's parsing code is
+# tested in the engine's own suite. The conda environment carries both anyway,
+# for the analysis documents.
+numpy>=1.24
+pandas>=2.0
+matplotlib>=3.7
+scipy>=1.10
+PyYAML>=6.0
+pytest>=7.0
+pytest-cov>=4.0

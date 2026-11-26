@@ -1,5 +1,11 @@
 # negative-steering-analyses
 
+[![Tests](https://github.com/joshuandwilliams/negative-steering-analyses/actions/workflows/test.yml/badge.svg)](https://github.com/joshuandwilliams/negative-steering-analyses/actions/workflows/test.yml)
+[![Lint](https://github.com/joshuandwilliams/negative-steering-analyses/actions/workflows/lint.yml/badge.svg)](https://github.com/joshuandwilliams/negative-steering-analyses/actions/workflows/lint.yml)
+[![Codecov test coverage](https://codecov.io/gh/joshuandwilliams/negative-steering-analyses/graph/badge.svg)](https://app.codecov.io/gh/joshuandwilliams/negative-steering-analyses)
+![python](https://img.shields.io/badge/python-3.11-1e90ff?logo=python)
+![quarto](https://img.shields.io/badge/quarto-1.9.38-75aadb)
+
 The benchmark behind
 [`structure-negative-steering`](https://github.com/joshuandwilliams/structure-negative-steering),
 and the nine analysis documents that read it. The engine itself is not here. It
@@ -21,10 +27,10 @@ seeds.
 
 | Method | Correctly posed | From |
 |:---|---:|:---|
-| Boltz-2, no MSA | 5 / 18 | `02-model-choice/boltz2_benchmark_comparison.csv` |
+| Boltz-2, no MSA | 5 / 18 | `analyses/02-model-choice/boltz2_benchmark_comparison.csv` |
 | Boltz-2 with reference restraints | 13 / 18 | the same file |
-| Boltz-2 with negative steering, 50 sets | 15 / 18 | `01-pose-rescue/dose_sweep_pass_counts.csv` |
-| Both together, 20 sets | 18 / 18 | `01-pose-rescue/benchmark_summary.csv` |
+| Boltz-2 with negative steering, 50 sets | 15 / 18 | `analyses/01-pose-rescue/dose_sweep_pass_counts.csv` |
+| Both together, 20 sets | 18 / 18 | `analyses/01-pose-rescue/benchmark_summary.csv` |
 
 Accuracy climbs with the number of steering mutation sets sampled, so the count
 is a cost decision rather than a fixed requirement.
@@ -131,8 +137,10 @@ is its directory. Rendered HTML is a build artefact and is gitignored.
 | `08-tier-failure-breakdown` | how often each complex is corrected, and how it fails |
 | `09-mutation-excluded-ipsae` | ipSAE with the steering mutations excluded |
 
-To regenerate, pull the summaries down from the cluster (about 16 MB, no raw
-model outputs) and re-render:
+To regenerate, pull the summaries down from the cluster and re-render.
+`--results-only` keeps the tabular and summary files and skips the
+per-prediction model outputs, which is about 8 MB per benchmark arm against
+roughly 6 GB for a full pull:
 
 ```bash
 contrib/sync_from_hpc.sh --name benchmarking --results-only
@@ -145,18 +153,34 @@ absent, so all of them re-render anywhere.
 ## Tests
 
 ```bash
+pip install -r requirements-test.txt
 pytest -m logic                  # everything that needs no run
 pytest                           # adds the assertions on a finished run tree
 ```
+
+`requirements-test.txt` is the whole dependency list and is what CI installs,
+so a package missing from it fails there rather than passing on a laptop whose
+conda environment supplies it. The conda environment is a superset: it also
+carries Quarto's kernel, gemmi and biopython, which the documents need and the
+tests do not.
 
 `logic` covers the committed configs, the generators that wrote them, and the
 statistics and selection rules behind the documents. The config tests import
 the engine's driver from the submodule, so they assert the pairing of a config
 with the engine that read it, not the config alone. They skip with a reason
-when the submodule is not checked out.
+when the submodule is not checked out, and CI checks it out so that skip never
+hides a gap.
 
 `check_test_run` asserts on a finished benchmark run. It skips cleanly when no
 run tree is present, and `NEGSTEER_BENCH_DIR` points it elsewhere.
+
+Coverage is measured over `scripts/` and
+`analyses/04-confidence-cost/confidence_common.py`, the only things the tests
+import, and gated in `pyproject.toml` as a ratchet that may only rise. The two
+generators are at 100%. `confidence_common.py` is lower by design: the tests
+pin the permutation tests, the bootstrap CI and `select_representative`, which
+are what decide a published claim, and not the plotting helpers that make up
+most of the rest.
 
 ## Provenance
 

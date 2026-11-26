@@ -1,0 +1,55 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      # submodules: true checks out the engine. Two test files load its
+      # bin/negative_steering.py to assert the committed configs still
+      # translate to the engine command they ran. Without it they skip, and a
+      # skipped test that was meant to run is a gap CI would not report.
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # requirements-test.txt is the whole dependency list for the tests. It
+      # carries numpy, pandas, matplotlib, scipy and PyYAML, which a laptop's
+      # conda environment supplies for free. A runner does not, so anything
+      # missing from that file fails here rather than silently passing locally.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      # The check_test_run tier needs a finished run tree, which lives on the
+      # cluster, so only the logic tier runs here. Coverage over scripts/ and
+      # analyses/04-confidence-cost/ is gated by pyproject as a ratchet, and
+      # pytest applies it through addopts.
+      #
+      # addopts carries -ra, so any skip prints its reason in the log rather
+      # than being asserted on here.
+      - name: Run the logic tier
+        run: pytest -m logic --cov-report=xml
+
+      # Skipped until the CODECOV_TOKEN secret is added to the repository.
+      # Codecov needs a repository upload token: a tokenless upload only works
+      # when the organisation has disabled token authentication for public
+      # repositories, or when the commit is on an unprotected branch, neither
+      # of which holds here.
+      - name: Upload coverage to Codecov
+        if: env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: coverage.xml

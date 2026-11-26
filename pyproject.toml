@@ -1,21 +1,68 @@
 # No package is built here. This file exists for the tool configuration below,
-# which pytest and ruff both read from the repository root.
+# which pytest, coverage and ruff all read from the repository root.
 #
 # The engine is a submodule with its own pyproject. Running pytest from this
-# root picks up these settings, not that one's, so the coverage ratchet over
-# the engine's bin/ does not apply to this tree.
+# root picks up these settings, not that one's, so the engine's 100% ratchet
+# over its bin/ does not apply to this tree, and the scope below does not
+# measure the engine.
+#
+# Test dependencies are in requirements-test.txt. Exact versions, which is what
+# reproduces a committed figure byte for byte, are in environment.yml.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--strict-markers -ra"
+# Coverage runs on every invocation, over the two things the tests target.
+# Anything else under analyses/ is a script run by hand or by Quarto, and no
+# test imports it, so measuring it would report a row of zeroes rather than a
+# gap worth closing.
+addopts = """
+    --strict-markers -ra
+    --cov=scripts
+    --cov=analyses/04-confidence-cost
+    --cov-report=lcov:lcov.info
+    --cov-report=term-missing:skip-covered
+"""
 markers = [
     "logic: runs anywhere with Python. The committed configs, the generators that wrote them, and the statistics behind the documents. No cluster, no container.",
     "check_test_run: asserts on the output of a real run. Needs a finished run tree on disk, which lives on the cluster.",
 ]
 
+[tool.coverage.run]
+source = ["scripts", "analyses/04-confidence-cost"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = true
+
+# A ratchet over the two generators and confidence_common.py. It may only ever
+# go up. Raise it to whatever a run reports once new tests land, so coverage
+# cannot quietly fall.
+#
+# It is well below 100 and that is the honest number rather than a target
+# missed. The generators are at 100%. confidence_common.py is 518 statements
+# and test_thesis_statistics.py was written to pin the parts that decide a
+# published claim: the three permutation tests, the bootstrap CI, and
+# select_representative. Its plotting helpers are the bulk of the rest, and a
+# test asserting a figure was drawn would not check that it was drawn right.
+#
+# CI gates the `logic` tier. A full run adds check_test_run, which only reads a
+# finished run tree, so it can raise this number but never lower it.
+fail_under = 42.0
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# The engine lints itself in its own repository, under its own configuration.
+# Without this exclusion `ruff check .` here descends into the submodule and
+# checks 70 files this repository does not own, under this repository's rules
+# rather than the engine's. CI would not have caught the divergence, because
+# its checkout leaves the submodule empty.
+exclude = ["engine"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
