@@ -40,29 +40,30 @@ show_missing = true
 skip_covered = true
 
 # A ratchet over the two generators and confidence_common.py. It may only ever
-# go up. Raise it to whatever a run reports once new tests land, so coverage
-# cannot quietly fall.
+# go up, and it is now at the top, so any uncovered statement fails the run.
 #
-# It is well below 100 and that is the honest number rather than a target
-# missed, so it is worth recording what the remainder is.
+# 100% here means every statement that decides a number is executed by a test,
+# not that every line in the directory is. The twelve `fig_*` functions, plus
+# _forest_panel, place_legend and apply_style, carry `# pragma: no cover`.
+# They draw. A test that called one and asserted a Figure came back would
+# raise this number while checking nothing, because it cannot tell a correct
+# axis from a wrong one. The reason is written at the Figures section in
+# confidence_common.py so the exclusion is visible to anyone reading the code
+# rather than only here.
 #
-# The generators are at 100%. In confidence_common.py, everything that decides
-# a number is covered: signed_rank_p, rank_sum_p, spearman, median_ci,
-# select_representative and _final_seed_value through
-# test_thesis_statistics.py, and the table builders through
-# test_confidence_tables.py — split, _steered, seed_pass_counts,
-# pose_matched_pairs, dose_table and build_representative_table, including the
-# four-way outcome label every published before-and-after row carries.
-#
-# What is left is twelve `fig_*` functions and the style helpers. They draw
-# figures, and a test that called one and asserted a Figure came back would
-# raise this number while checking almost nothing: it cannot tell a correct
-# axis from a wrong one. Covering them would buy a bigger figure here and no
-# more confidence in a result, so they are left alone deliberately.
+# Everything else is covered. The statistics and the selection rule come
+# through test_thesis_statistics.py, which exercises signed_rank_p,
+# rank_sum_p, spearman, median_ci, select_representative and
+# _final_seed_value. The table builders come through
+# test_confidence_tables.py, which exercises split, _steered,
+# seed_pass_counts, pose_matched_pairs, dose_table, load_per_seed,
+# effect_table, representative_reversion, outcome_contrast_table,
+# rank_noise_floor and build_representative_table, including the four-way
+# outcome label every published before-and-after row carries.
 #
 # CI gates the `logic` tier. A full run adds check_test_run, which only reads a
 # finished run tree, so it can raise this number but never lower it.
-fail_under = 48.0
+fail_under = 100.0
 
 [tool.ruff]
 line-length = 100

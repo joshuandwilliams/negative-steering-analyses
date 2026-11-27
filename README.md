@@ -176,20 +176,24 @@ run tree is present, and `NEGSTEER_BENCH_DIR` points it elsewhere.
 
 Coverage is measured over `scripts/` and
 `analyses/04-confidence-cost/confidence_common.py`, the only things the tests
-import, and gated in `pyproject.toml` as a ratchet that may only rise.
+import, and gated in `pyproject.toml` at 100% as a ratchet.
 
-The two generators are at 100%. In `confidence_common.py`, everything that
-decides a number is covered: the three permutation tests, the bootstrap CI,
-`spearman`, `select_representative` and `_final_seed_value`, plus the table
-builders — `split`, `seed_pass_counts`, `pose_matched_pairs`, `dose_table` and
+That 100% counts every statement that decides a number, not every line in the
+directory. The two generators are covered whole. In `confidence_common.py` the
+three permutation tests, the bootstrap CI, `spearman`,
+`select_representative` and `_final_seed_value` are covered, and so is every
+table builder: `split`, `_steered`, `seed_pass_counts`, `pose_matched_pairs`,
+`dose_table`, `load_per_seed`, `effect_table`, `representative_reversion`,
+`outcome_contrast_table`, `rank_noise_floor` and
 `build_representative_table`, including the four-way outcome label that every
 row of the before-and-after figures carries.
 
-What is left uncovered is twelve `fig_*` functions and the style helpers. A
-test that called one and asserted a figure came back would raise the number
-and check almost nothing, since it cannot tell a correct axis from a wrong
-one. They are left alone deliberately, which is why the total sits below 50%
-rather than near it.
+The twelve `fig_*` functions and the three style helpers carry
+`# pragma: no cover`. They draw. A test that called one and asserted a figure
+came back would raise the number and check nothing, since it cannot tell a
+correct axis from a wrong one. What they draw is checked by looking at the
+figures. The exclusion is marked in the source at the Figures section, so it
+is visible where the code is rather than only in the config.
 
 ## Provenance
 

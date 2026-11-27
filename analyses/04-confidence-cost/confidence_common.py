@@ -46,7 +46,7 @@ LOG_TICKS = [0.5, 1, 2, 3, 5, 10, 20, 40]
 LEGEND_KW = dict(loc="center left", bbox_to_anchor=(1.01, 0.5), borderaxespad=0.0)
 
 
-def place_legend(ax, handles=None, labels=None, **kw):
+def place_legend(ax, handles=None, labels=None, **kw):  # pragma: no cover
     """Beside the axes for a short legend, above the figure for a long one.
 
     A long legend beside a faceted figure eats the width of a whole panel, so
@@ -83,7 +83,7 @@ KEEP = ["unit", "design", "base", "status", "kind", "seed_index", "n_mutations",
         "true_jaccard"]
 
 
-def apply_style():
+def apply_style():  # pragma: no cover
     plt.rcParams.update({
         "figure.dpi": 130, "savefig.dpi": 200, "savefig.bbox": "tight",
         "font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,
@@ -365,6 +365,16 @@ def effect_table(entries) -> pd.DataFrame:
 
 
 # ── Figures ──────────────────────────────────────────────────────────────────
+#
+# Every function below carries `# pragma: no cover`, and so do place_legend and
+# apply_style above. They draw. A test that called one and asserted a Figure
+# came back would raise the coverage number without checking anything, because
+# it cannot tell a correct axis from a wrong one. What they draw is checked by
+# looking at the figures.
+#
+# The table builders interleaved here are covered, and deliberately so: they
+# decide which rows reach a published table, where a wrong answer still looks
+# like a table. See tests/characterization/test_confidence_tables.py.
 
 def _ylabel(m, lab, delta=False):
     unit = " (0-100)" if (m in PLDDT_COLS and not delta) else \
@@ -372,7 +382,7 @@ def _ylabel(m, lab, delta=False):
     return (f"Δ {lab}" if delta else lab) + unit
 
 
-def fig_before_after(repdf: pd.DataFrame, steered_only: pd.DataFrame,
+def fig_before_after(repdf: pd.DataFrame, steered_only: pd.DataFrame,  # pragma: no cover
                      outpath, alpha=0.85, lw=2.0):
     """Paired cold start to representative steered, one panel per metric."""
     fig, axes = plt.subplots(1, 3, figsize=(10.0, 4.2))
@@ -417,7 +427,7 @@ def fig_before_after(repdf: pd.DataFrame, steered_only: pd.DataFrame,
     return fig
 
 
-def fig_dose(sub: pd.DataFrame, outpath, jitter=0.13, size=60):
+def fig_dose(sub: pd.DataFrame, outpath, jitter=0.13, size=60):  # pragma: no cover
     """Confidence change against the unit's mutation budget."""
     fig, axes = plt.subplots(1, 3, figsize=(10.0, 3.8), sharex=True)
     jit = np.random.default_rng(7).uniform(-jitter, jitter, len(sub))
@@ -465,7 +475,7 @@ def dose_table(sub: pd.DataFrame) -> pd.DataFrame:
 CONTRAST_OUTCOMES = ["rescued", "still wrong"]
 
 
-def _forest_panel(ax, rows, m, jitter=0.10, size=26, seed=11):
+def _forest_panel(ax, rows, m, jitter=0.10, size=26, seed=11):  # pragma: no cover
     """Draw one metric's paired differences as jittered points + median and CI.
 
     `rows` is [(label, diffs, colour)], drawn top-down. The CI is the bootstrap
@@ -498,7 +508,7 @@ def _steered(df):
     return df[~df.steering_skipped]
 
 
-def fig_cohort_effects(cohorts: dict, outpath, stats_in_title=True,
+def fig_cohort_effects(cohorts: dict, outpath, stats_in_title=True,  # pragma: no cover
                        legend="right", figsize=(9.0, 6.4)):
     """Cohorts' paired differences on one axis per metric.
 
@@ -535,7 +545,7 @@ def fig_cohort_effects(cohorts: dict, outpath, stats_in_title=True,
     return fig
 
 
-def fig_outcome_contrast(cohorts: dict, outpath):
+def fig_outcome_contrast(cohorts: dict, outpath):  # pragma: no cover
     """Paired differences split by whether steering rescued the pose.
 
     This is the panel that tests the runner-up-interface explanation directly.
@@ -580,7 +590,7 @@ def pose_matched_pairs(unconstrained: pd.DataFrame, constrained: pd.DataFrame):
     return a.loc[ok], b.loc[ok]
 
 
-def fig_constraint_scatter(pairs: dict, outpath, stats_in_title=True,
+def fig_constraint_scatter(pairs: dict, outpath, stats_in_title=True,  # pragma: no cover
                            metric_in_axes=True, legend="right", size=34):
     """Steered confidence with constraints against without, pose-matched.
 
@@ -650,7 +660,7 @@ def seed_pass_counts(pred: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(recs)
 
 
-def fig_controls_diagnostic(groups: dict, outpath, panels=("ra_eff", "true_jaccard"),
+def fig_controls_diagnostic(groups: dict, outpath, panels=("ra_eff", "true_jaccard"),  # pragma: no cover
                             labels=None, unit_name="seeds", figsize=(7.6, 5.6)):
     """Real steered designs against sequence controls, per seed.
 
@@ -687,7 +697,7 @@ def fig_controls_diagnostic(groups: dict, outpath, panels=("ra_eff", "true_jacca
     return fig
 
 
-def fig_controls_joint(groups: dict, outpath, x="rep_ra_eff", y="rep_true_jaccard",
+def fig_controls_joint(groups: dict, outpath, x="rep_ra_eff", y="rep_true_jaccard",  # pragma: no cover
                        xlabel="receptor-aligned effector RMSD (Å, log scale)",
                        ylabel="interface Jaccard vs true interface",
                        unit_name="sequences", legend="top", size=44,
@@ -733,7 +743,7 @@ def fig_controls_joint(groups: dict, outpath, x="rep_ra_eff", y="rep_true_jaccar
     return fig
 
 
-def fig_seed_reliability(groups: dict, outpath, figsize=(7.6, 4.0)):
+def fig_seed_reliability(groups: dict, outpath, figsize=(7.6, 4.0)):  # pragma: no cover
     """How many of a design's seeds pass, as a distribution rather than a mean.
 
     A design that passes on every seed and one that passes on a single lucky
@@ -761,7 +771,7 @@ REVERSION_ORDER = ["pose_holds", "pose_collapses", "new_contamination",
                    "pose_holds_not_intact"]
 
 
-def fig_reversion_cascade(groups: dict, outpath, figsize=(7.6, 4.2)):
+def fig_reversion_cascade(groups: dict, outpath, figsize=(7.6, 4.2)):  # pragma: no cover
     """What reversion does to the seeds it is applied to.
 
     Reversion only runs on seeds whose steering mutations themselves contact the
@@ -826,7 +836,7 @@ def representative_reversion(pred: pd.DataFrame, repdf: pd.DataFrame) -> pd.Data
     return pd.DataFrame(recs)
 
 
-def fig_reversion_representative(groups: dict, outpath, figsize=(7.0, 4.2)):
+def fig_reversion_representative(groups: dict, outpath, figsize=(7.0, 4.2)):  # pragma: no cover
     """The reversion cascade at the level the rest of the analysis uses.
 
     `groups` is {label -> (per-seed frame, representative table)}. One bar per
@@ -894,7 +904,7 @@ def rank_noise_floor(pred: pd.DataFrame, units, metric, seeds=(0, 1, 2)):
     return out
 
 
-def fig_constraint_level_and_rank(unconstrained, constrained, groups, outpath,
+def fig_constraint_level_and_rank(unconstrained, constrained, groups, outpath,  # pragma: no cover
                                   metrics=RANK_METRICS, size=34, figsize=(8.4, 8.0)):
     """What constraints do to an interface metric's level, and to its order.
 
@@ -951,7 +961,7 @@ def fig_constraint_level_and_rank(unconstrained, constrained, groups, outpath,
     return fig
 
 
-def fig_rank_agreement(pairs: dict, outpath, metrics=RANK_METRICS,
+def fig_rank_agreement(pairs: dict, outpath, metrics=RANK_METRICS,  # pragma: no cover
                        size=34, figsize=(8.4, 4.2)):
     """Does adding constraints reorder the units, or just raise every score?
 
