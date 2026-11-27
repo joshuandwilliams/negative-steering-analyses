@@ -44,15 +44,25 @@ skip_covered = true
 # cannot quietly fall.
 #
 # It is well below 100 and that is the honest number rather than a target
-# missed. The generators are at 100%. confidence_common.py is 518 statements
-# and test_thesis_statistics.py was written to pin the parts that decide a
-# published claim: the three permutation tests, the bootstrap CI, and
-# select_representative. Its plotting helpers are the bulk of the rest, and a
-# test asserting a figure was drawn would not check that it was drawn right.
+# missed, so it is worth recording what the remainder is.
+#
+# The generators are at 100%. In confidence_common.py, everything that decides
+# a number is covered: signed_rank_p, rank_sum_p, spearman, median_ci,
+# select_representative and _final_seed_value through
+# test_thesis_statistics.py, and the table builders through
+# test_confidence_tables.py — split, _steered, seed_pass_counts,
+# pose_matched_pairs, dose_table and build_representative_table, including the
+# four-way outcome label every published before-and-after row carries.
+#
+# What is left is twelve `fig_*` functions and the style helpers. They draw
+# figures, and a test that called one and asserted a Figure came back would
+# raise this number while checking almost nothing: it cannot tell a correct
+# axis from a wrong one. Covering them would buy a bigger figure here and no
+# more confidence in a result, so they are left alone deliberately.
 #
 # CI gates the `logic` tier. A full run adds check_test_run, which only reads a
 # finished run tree, so it can raise this number but never lower it.
-fail_under = 42.0
+fail_under = 48.0
 
 [tool.ruff]
 line-length = 100

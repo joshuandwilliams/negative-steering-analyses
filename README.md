@@ -176,11 +176,20 @@ run tree is present, and `NEGSTEER_BENCH_DIR` points it elsewhere.
 
 Coverage is measured over `scripts/` and
 `analyses/04-confidence-cost/confidence_common.py`, the only things the tests
-import, and gated in `pyproject.toml` as a ratchet that may only rise. The two
-generators are at 100%. `confidence_common.py` is lower by design: the tests
-pin the permutation tests, the bootstrap CI and `select_representative`, which
-are what decide a published claim, and not the plotting helpers that make up
-most of the rest.
+import, and gated in `pyproject.toml` as a ratchet that may only rise.
+
+The two generators are at 100%. In `confidence_common.py`, everything that
+decides a number is covered: the three permutation tests, the bootstrap CI,
+`spearman`, `select_representative` and `_final_seed_value`, plus the table
+builders — `split`, `seed_pass_counts`, `pose_matched_pairs`, `dose_table` and
+`build_representative_table`, including the four-way outcome label that every
+row of the before-and-after figures carries.
+
+What is left uncovered is twelve `fig_*` functions and the style helpers. A
+test that called one and asserted a figure came back would raise the number
+and check almost nothing, since it cannot tell a correct axis from a wrong
+one. They are left alone deliberately, which is why the total sits below 50%
+rather than near it.
 
 ## Provenance
 
